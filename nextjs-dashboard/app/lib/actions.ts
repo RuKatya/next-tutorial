@@ -27,11 +27,17 @@ export async function createInvoice(formData: FormData) {
     console.log(customerId, amount, status)
     console.log(amountInCents)
     console.log(date)
-
-    await sql`
+    try {
+        await sql`
       INSERT INTO invoices (customer_id, amount, status, date)
       VALUES (${customerId}, ${amountInCents}, ${status}, ${date})
     `;
+
+    } catch (error) {
+        return {
+            message: 'Something went wrong',
+        }
+    }
 
     revalidatePath('/dashboard/invoices');
     redirect('/dashboard/invoices');
@@ -45,4 +51,44 @@ export async function createInvoice(formData: FormData) {
     // console.log(rawFormData);
     // //   console.log(first)
     // console.log(typeof rawFormData.amount);
+}
+
+const UpdateInvoice = FormSchema.omit({ id: true, date: true });
+
+export async function updateInvoice(id: string, formData: FormData) {
+    const { customerId, amount, status } = UpdateInvoice.parse({
+        customerId: formData.get('customerId'),
+        amount: formData.get('amount'),
+        status: formData.get('status'),
+    });
+
+    const amountInCents = amount * 100;
+
+    try {
+        await sql`
+          UPDATE invoices
+          SET customer_id = ${customerId}, amount = ${amountInCents}, status = ${status}
+          WHERE id = ${id}
+        `;
+    } catch (error) {
+        return {
+            message: 'Something went wrong',
+        }
+    }
+
+    revalidatePath('/dashboard/invoices');
+    redirect('/dashboard/invoices');
+}
+
+export async function deleteInvoice(id: string) {
+    throw new Error('Failed to Delete Invoice');
+    try {
+        await sql`DELETE FROM invoices WHERE id = ${id}`;
+        revalidatePath('/dashboard/invoices');
+        return { message: 'Deleted Invoice.' };
+    } catch (error) {
+        return {
+            message: 'Something went wrong',
+        }
+    }
 }
